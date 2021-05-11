@@ -2,9 +2,13 @@ import time
 import gym
 import numpy as np
 from tensorflow.keras import models
+
+# create env
 env = gym.make('MountainCar-v0')
+# load trained model
 model = models.load_model('dqn_300.h5')
 
+# reset env
 s = env.reset()
 while True:
     env.render()

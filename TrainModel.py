@@ -10,6 +10,7 @@ from tensorflow.keras.optimizers import Adam
 import tensorflow.keras.backend as K
 import matplotlib.pyplot as plt
 
+# set parameters
 FILE_PATH = 'dqn_300.h5'
 ENV_NAME = 'MountainCar-v0'
 NUM_EPISODES = 1000
@@ -37,6 +38,7 @@ class Agent:
         self.model = self.create_model()
         self.target_model = self.create_model()
 
+    # create DQN model using tensorflow
     def create_model(self):
         inputs = Input(shape=(STATE_DIM,))
         x = Dense(100, activation='relu')(inputs)
@@ -47,29 +49,35 @@ class Agent:
 
         return model
 
+    # use dcey to decrase epsilon
     def update_epsilon(self):
         if self.epsilon > EPSILON_MIN:
             self.epsilon *= EPSILON_DCEY
 
+    # decide nexy action
     def run(self, state):
         if np.random.rand() <= self.epsilon:
             return np.random.choice([0, 1, 2])
         return np.argmax(self.model.predict(np.array([state]))[0])
 
+    # save model
     def save_model(self):
         self.model.save(FILE_PATH)
         print('Model Saved!')
 
+    # record current step
     def remember(self, state, action, reward, next_state, done):
         item = (state, action, reward, next_state, done)
         self.memory_buffer.append(item)
 
+    # calculate Q_star using DQN
     def process_batch(self):
         if len(self.memory_buffer) < self.memory_size:
             return
         
         self.step_count += 1
 
+        # update target model
         if self.step_count % self.update_freq == 0:
             self.target_model.set_weights(self.model.get_weights())
 
@@ -80,6 +88,7 @@ class Agent:
         y = self.model.predict(states)
         q = self.target_model.predict(next_states)
 
+        # Q_star
         for i, (_, action, reward, _, done) in enumerate(data):
             if not done:
                 y[i][action] = (1-LEARNING_RATE) * y[i][action] + LEARNING_RATE * (reward + self.gamma * np.amax(q[i]))
@@ -87,10 +96,12 @@ class Agent:
         self.update_epsilon()
         self.model.fit(states, y, verbose=0)
 
+    # train model
     def train(self):
         score_list = []
         for i in range(NUM_EPISODES):
 
+            # reinit
             state = self.env.reset()
             score = 0
             done = False
@@ -99,6 +110,7 @@ class Agent:
                 # self.env.render()
                 action = self.run(state)
                 next_state, reward, done, _ = self.env.step(action)
+                # reward function
                 reward = abs(next_state[0] - (-0.5))
                 if next_state[0] >= 0.5:
                     reward += 300 
@@ -107,10 +119,11 @@ class Agent:
                 self.process_batch()
                 state = next_state
 
+            # show the score (>300 means this time the car reaches the top)
             score_list.append(score)
             print('episode:', i, 'score:', score)
-            # print('episode:', i, 'score:', score, 'max:', max(score_list))
 
+            # last 10 times all successful, we consider this model as a good one
             if np.min(score_list[-10:]) > 300:
                 self.save_model()
                 break
@@ -118,7 +131,6 @@ class Agent:
         # plt.xlabel("Episode")
         # plt.ylabel("Score")
         # plt.show()
-
 
 if __name__ == '__main__':
     model = Agent()
