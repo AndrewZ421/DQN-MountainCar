@@ -4,7 +4,7 @@ import numpy as np
 from tensorflow.keras import models
 env = gym.make('MountainCar-v0')
 model = models.load_model('dqn_300.h5')
-# model = models.load_model('dqn-120.h5')
+
 s = env.reset()
 while True:
     env.render()
